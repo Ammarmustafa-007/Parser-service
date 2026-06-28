@@ -40,10 +40,11 @@ def parse(pdf_bytes):
                         day_idx = (c_idx - 1) // 6
                         slot_number = (c_idx - 1) % 6 + 1
                         lines = [line.strip() for line in cell_text.replace('\r', '\n').split('\n') if line.strip()]
-                        if len(lines) >= 2:
-                            dynamic_times[(day_idx, slot_number)] = {"start": lines[0], "end": lines[-1]}
-                        else:
-                            parts = cell_text.replace('-', ' ').split()
+                        time_lines = [line for line in lines if ":" in line]
+                        if len(time_lines) >= 2:
+                            dynamic_times[(day_idx, slot_number)] = {"start": time_lines[0], "end": time_lines[-1]}
+                        elif len(time_lines) == 1:
+                            parts = time_lines[0].replace('-', ' ').split()
                             if len(parts) >= 2:
                                 dynamic_times[(day_idx, slot_number)] = {"start": parts[0], "end": parts[-1]}
 
