@@ -16,7 +16,30 @@ def parse(pdf_bytes):
             
             # Row 0 is day headers, Row 1 is slot headers
             # Data starts from row 2
+            dynamic_times = {}
+            time_row_idx = None
+            if len(table) > 2:
+                time_matches = sum(1 for c in table[2][1:5] if c and ":" in str(c))
+                if time_matches >= 2:
+                    time_row_idx = 2
+            
+            if time_row_idx is not None:
+                for c_idx in range(1, min(37, len(table[time_row_idx]))):
+                    cell_text = str(table[time_row_idx][c_idx]).strip()
+                    if ":" in cell_text:
+                        day_idx = (c_idx - 1) // 6
+                        slot_number = (c_idx - 1) % 6 + 1
+                        lines = [line.strip() for line in cell_text.replace('\r', '\n').split('\n') if line.strip()]
+                        if len(lines) >= 2:
+                            dynamic_times[(day_idx, slot_number)] = {"start": lines[0], "end": lines[-1]}
+                        else:
+                            parts = cell_text.replace('-', ' ').split()
+                            if len(parts) >= 2:
+                                dynamic_times[(day_idx, slot_number)] = {"start": parts[0], "end": parts[-1]}
             for r_idx in range(2, len(table)):
+                if r_idx == time_row_idx:
+                    continue
+                    
                 row = table[r_idx]
                 section_name = row[0]
                 
@@ -50,13 +73,19 @@ def parse(pdf_bytes):
                     cell_data = parse_cell(cell_text)
                     
                     if not cell_data:
+                        start_time = SLOT_TIMES[slot_number]["start"]
+                        end_time = SLOT_TIMES[slot_number]["end"]
+                        if (day_idx, slot_number) in dynamic_times:
+                            start_time = dynamic_times[(day_idx, slot_number)]["start"]
+                            end_time = dynamic_times[(day_idx, slot_number)]["end"]
+                            
                         # Empty cell
                         slots.append({
                             "section": section_name,
                             "day": day_name,
                             "slot": slot_number,
-                            "start_time": SLOT_TIMES[slot_number]["start"],
-                            "end_time": SLOT_TIMES[slot_number]["end"],
+                            "start_time": start_time,
+                            "end_time": end_time,
                             "subject": None,
                             "teacher": None,
                             "room": None,
@@ -76,12 +105,24 @@ def parse(pdf_bytes):
                                 if not next_cell or not str(next_cell).strip():
                                     col_span = 2
                         
+                        start_time = SLOT_TIMES[slot_number]["start"]
+                        if (day_idx, slot_number) in dynamic_times:
+                            start_time = dynamic_times[(day_idx, slot_number)]["start"]
+                            
+                        end_slot = slot_number + col_span - 1
+                        if end_slot > 6:
+                            end_slot = 6
+                            
+                        end_time = SLOT_TIMES[end_slot]["end"]
+                        if (day_idx, end_slot) in dynamic_times:
+                            end_time = dynamic_times[(day_idx, end_slot)]["end"]
+                        
                         slots.append({
                             "section": section_name,
                             "day": day_name,
                             "slot": slot_number,
-                            "start_time": SLOT_TIMES[slot_number]["start"],
-                            "end_time": SLOT_TIMES[slot_number + col_span - 1]["end"] if slot_number + col_span - 1 <= 6 else SLOT_TIMES[6]["end"],
+                            "start_time": start_time,
+                            "end_time": end_time,
                             "subject": cell_data["subject"],
                             "teacher": cell_data["teacher"],
                             "room": cell_data["room"],
