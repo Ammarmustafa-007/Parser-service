@@ -27,10 +27,11 @@ def parse(pdf_bytes):
             # Row 0 is day headers, Row 1 is slot headers
             dynamic_times = {}
             time_row_idx = None
-            if len(grid) > 2:
-                time_matches = sum(1 for c in grid[2][1:5] if c and ":" in str(c))
-                if time_matches >= 2:
-                    time_row_idx = 2
+            for r in range(1, min(4, len(grid))):
+                time_matches = sum(1 for c in grid[r] if c and ":" in str(c))
+                if time_matches >= 4:
+                    time_row_idx = r
+                    break
             
             if time_row_idx is not None:
                 for c_idx in range(1, min(37, len(grid[time_row_idx]))):

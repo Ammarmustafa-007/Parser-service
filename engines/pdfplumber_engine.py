@@ -18,10 +18,11 @@ def parse(pdf_bytes):
             # Data starts from row 2
             dynamic_times = {}
             time_row_idx = None
-            if len(table) > 2:
-                time_matches = sum(1 for c in table[2][1:5] if c and ":" in str(c))
-                if time_matches >= 2:
-                    time_row_idx = 2
+            for r in range(1, min(4, len(table))):
+                time_matches = sum(1 for c in table[r] if c and ":" in str(c))
+                if time_matches >= 4:
+                    time_row_idx = r
+                    break
             
             if time_row_idx is not None:
                 for c_idx in range(1, min(37, len(table[time_row_idx]))):
