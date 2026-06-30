@@ -11,5 +11,6 @@ COPY . .
 # Expose port
 EXPOSE 5001
 
-# Run with Gunicorn instead of Flask dev server
-CMD ["gunicorn", "--bind", "0.0.0.0:5001", "--workers", "2", "--timeout", "120", "app:app"]
+# Keep one parser worker on small Render instances; pdfplumber parsing is CPU-bound,
+# so multiple workers can fight for the same limited CPU and memory.
+CMD ["gunicorn", "--bind", "0.0.0.0:5001", "--workers", "1", "--threads", "2", "--preload", "--timeout", "120", "app:app"]
